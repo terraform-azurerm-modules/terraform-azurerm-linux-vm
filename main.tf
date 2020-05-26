@@ -9,12 +9,15 @@ locals {
   boot_diagnostics_uri = coalesce(var.boot_diagnostics_uri, var.defaults.boot_diagnostics_uri)
 
   admin_username       = coalesce(var.admin_username, var.defaults.admin_username)
-  // ssh_users            = toset(distinct(concat([var.admin_username], coalescelist(var.ssh_users, var.defaults.ssh_users, [var.admin_username]))))
   ssh_users            = toset(distinct(concat([local.admin_username], coalescelist(var.ssh_users, var.defaults.ssh_users, [local.admin_username]))))
   subnet_id            = coalesce(var.subnet_id, var.defaults.subnet_id)
   vm_size              = coalesce(var.vm_size, var.defaults.vm_size)
   storage_account_type = coalesce(var.storage_account_type, var.defaults.storage_account_type)
 
+  application_security_group = {
+    for id in flatten([var.application_security_group_id]) :
+    (basename(id)) => id
+  }
 }
 
 data "azurerm_key_vault_secret" "ssh_public_key" {
@@ -22,6 +25,7 @@ data "azurerm_key_vault_secret" "ssh_public_key" {
   name         = each.value
   key_vault_id = local.key_vault_id
 }
+
 
 resource "azurerm_network_interface" "vm" {
   depends_on          = [var.module_depends_on]
@@ -39,6 +43,12 @@ resource "azurerm_network_interface" "vm" {
   }
 }
 
+resource "azurerm_network_interface_application_security_group_association" "asg" {
+  for_each                      = local.application_security_group
+  network_interface_id          = azurerm_network_interface.vm.id
+  application_security_group_id = each.value
+}
+
 resource "azurerm_linux_virtual_machine" "vm" {
   resource_group_name = local.resource_group_name
   location            = local.location
@@ -50,6 +60,7 @@ resource "azurerm_linux_virtual_machine" "vm" {
   admin_username                  = local.admin_username
   disable_password_authentication = true
   size                            = local.vm_size
+  availability_set_id             = var.availability_set_id
   // zone                            = 'A'
 
   network_interface_ids = [azurerm_network_interface.vm[each.key].id]

@@ -28,6 +28,18 @@ variable "source_image_reference" {
 
 }
 
+variable "availability_set_id" {
+  description = "Resource ID for avaailability set."
+  type        = string
+  default     = null
+}
+
+variable "application_security_group_name" {
+  description = "Availability set name. Can take string or list."
+  type        = any
+  default     = ""
+}
+
 variable "defaults" {
   description = "Collection of default values."
   type = object({
