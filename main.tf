@@ -1,5 +1,5 @@
 locals {
-  names = length(var.names) > 0 ? var.names : list(var.name)
+  names = toset(length(var.names) > 0 ? var.names : [var.name])
 
   module_depends_on    = coalescelist(var.module_depends_on, var.defaults.module_depends_on)
   resource_group_name  = coalesce(var.resource_group_name, var.defaults.resource_group_name)
@@ -14,10 +14,6 @@ locals {
   vm_size              = coalesce(var.vm_size, var.defaults.vm_size)
   storage_account_type = coalesce(var.storage_account_type, var.defaults.storage_account_type)
 
-  application_security_group = {
-    for id in flatten([var.application_security_group_id]) :
-    (basename(id)) => id
-  }
 }
 
 data "azurerm_key_vault_secret" "ssh_public_key" {
@@ -33,7 +29,7 @@ resource "azurerm_network_interface" "vm" {
   location            = local.location
   tags                = local.tags
 
-  for_each = toset(local.names)
+  for_each = local.names
   name     = "${each.value}-nic"
 
   ip_configuration {
@@ -44,9 +40,9 @@ resource "azurerm_network_interface" "vm" {
 }
 
 resource "azurerm_network_interface_application_security_group_association" "asg" {
-  for_each                      = local.application_security_group
-  network_interface_id          = azurerm_network_interface.vm.id
-  application_security_group_id = each.value
+  for_each                      = local.names
+  network_interface_id          = azurerm_network_interface.vm[each.value].id
+  application_security_group_id = var.application_security_group_id
 }
 
 resource "azurerm_linux_virtual_machine" "vm" {
@@ -54,7 +50,7 @@ resource "azurerm_linux_virtual_machine" "vm" {
   location            = local.location
   tags                = local.tags
 
-  for_each = toset(local.names)
+  for_each = local.names
   name     = each.value // also used for computer_name, i.e. hostname
 
   admin_username                  = local.admin_username

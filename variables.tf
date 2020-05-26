@@ -34,11 +34,19 @@ variable "availability_set_id" {
   default     = null
 }
 
-variable "application_security_group_name" {
-  description = "Availability set name. Can take string or list."
-  type        = any
+variable "application_security_group_id" {
+  description = "Resource ID for application security group."
+  type        = string
   default     = ""
 }
+
+/*
+variable "application_security_group_ids" {
+  description = "Resource IDs for application security group. Overrides var.application_security_group_id."
+  type        = list(string)
+  default     = []
+}
+*/
 
 variable "defaults" {
   description = "Collection of default values."
