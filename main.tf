@@ -14,6 +14,8 @@ locals {
   vm_size              = coalesce(var.vm_size, var.defaults.vm_size)
   storage_account_type = coalesce(var.storage_account_type, var.defaults.storage_account_type)
 
+  vms_to_asgs = length(var.application_security_group) > 0 ? local.names : []
+
 }
 
 data "azurerm_key_vault_secret" "ssh_public_key" {
@@ -40,7 +42,7 @@ resource "azurerm_network_interface" "vm" {
 }
 
 resource "azurerm_network_interface_application_security_group_association" "asg" {
-  for_each                      = local.names
+  for_each                      = local.vms_to_asgs
   network_interface_id          = azurerm_network_interface.vm[each.value].id
   application_security_group_id = var.application_security_group_id
 }
