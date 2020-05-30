@@ -5,11 +5,12 @@ locals {
   resource_group_name  = coalesce(var.resource_group_name, var.defaults.resource_group_name)
   location             = coalesce(var.location, var.defaults.location)
   tags                 = merge(var.defaults.tags, var.tags)
-  key_vault_id         = coalesce(var.key_vault_id, var.defaults.key_vault_id)
   boot_diagnostics_uri = coalesce(var.boot_diagnostics_uri, var.defaults.boot_diagnostics_uri)
 
   admin_username       = coalesce(var.admin_username, var.defaults.admin_username)
-  ssh_users            = toset(distinct(concat([local.admin_username], coalescelist(var.ssh_users, var.defaults.ssh_users, [local.admin_username]))))
+  admin_ssh_public_key = try(coalesce(var.admin_ssh_public_key, var.defaults.admin_ssh_public_key), file("~/.ssh/id_rsa.pub"))
+  additional_ssh_keys  = try(coalesce(var.additional_ssh_keys, var.defaults.additional_ssh_keys), [])
+
   subnet_id            = coalesce(var.subnet_id, var.defaults.subnet_id)
   vm_size              = coalesce(var.vm_size, var.defaults.vm_size)
   storage_account_type = coalesce(var.storage_account_type, var.defaults.storage_account_type)
@@ -17,13 +18,6 @@ locals {
   vms_to_asgs = length(var.application_security_group_id) > 0 ? local.names : []
 
 }
-
-data "azurerm_key_vault_secret" "ssh_public_key" {
-  for_each     = local.ssh_users
-  name         = each.value
-  key_vault_id = local.key_vault_id
-}
-
 
 resource "azurerm_network_interface" "vm" {
   depends_on          = [var.module_depends_on]
@@ -82,11 +76,16 @@ resource "azurerm_linux_virtual_machine" "vm" {
 
   // custom_data = "Base64 encoded custom data"
 
+  admin_ssh_key {
+    username   = local.admin_username
+    public_key = local.admin_ssh_public_key
+  }
+
   dynamic "admin_ssh_key" {
-    for_each = local.ssh_users
+    for_each = var.additional_ssh_keys
     content {
-      username   = admin_ssh_key.value
-      public_key = data.azurerm_key_vault_secret.ssh_public_key[admin_ssh_key.value].value
+      username   = admin_ssh_key.value.username
+      public_key = admin_ssh_key.value.public_key
     }
   }
 

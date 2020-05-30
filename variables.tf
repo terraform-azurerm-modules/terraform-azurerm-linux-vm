@@ -51,18 +51,21 @@ variable "application_security_group_ids" {
 variable "defaults" {
   description = "Collection of default values."
   type = object({
-    module_depends_on    = list(string)
+    module_depends_on    = any
     resource_group_name  = string
     location             = string
     tags                 = map(string)
-    key_vault_id         = string
     boot_diagnostics_uri = string
-
-    admin_username       = string
-    ssh_users            = list(string)
     subnet_id            = string
     vm_size              = string
     storage_account_type = string
+    admin_username       = string
+    admin_ssh_public_key = string
+
+    additional_ssh_keys = list(object({
+      username   = string
+      public_key = string
+    }))
   })
 }
 
@@ -114,9 +117,18 @@ variable "admin_username" {
   default     = ""
 }
 
-variable "ssh_users" {
-  description = "List of additional key vault secrets containing SSH public keys"
-  type        = list(string)
+variable "admin_ssh_public_key" {
+  description = "SSH public key string for admin_username. E.g. file(~/.ssh/id_rsa.pub)."
+  type        = string
+  default     = ""
+}
+
+variable "additional_ssh_keys" {
+  description = "List of additional admin users and their SSH public keys"
+  type        = list(object({
+      username   = string
+      public_key = string
+    }))
   default     = []
 }
 
@@ -127,6 +139,6 @@ variable "boot_diagnostics_uri" {
 }
 
 variable "module_depends_on" {
-  type    = list(string)
+  type    = any
   default = []
 }
