@@ -28,28 +28,10 @@ variable "source_image_reference" {
 
 }
 
-variable "availability_set_id" {
-  description = "Resource ID for avaailability set."
-  type        = string
-  default     = null
-}
-
-variable "application_security_group_id" {
-  description = "Resource ID for application security group."
-  type        = string
-  default     = ""
-}
-
-/*
-variable "application_security_group_ids" {
-  description = "Resource IDs for application security group. Overrides var.application_security_group_id."
-  type        = list(string)
-  default     = []
-}
-*/
+// ==============================================================================
 
 variable "defaults" {
-  description = "Collection of default values."
+  description = "Collection of user configurable default values."
   type = object({
     module_depends_on    = any
     resource_group_name  = string
@@ -125,11 +107,11 @@ variable "admin_ssh_public_key" {
 
 variable "additional_ssh_keys" {
   description = "List of additional admin users and their SSH public keys"
-  type        = list(object({
-      username   = string
-      public_key = string
-    }))
-  default     = []
+  type = list(object({
+    username   = string
+    public_key = string
+  }))
+  default = []
 }
 
 variable "boot_diagnostics_uri" {
@@ -137,6 +119,37 @@ variable "boot_diagnostics_uri" {
   type        = string
   default     = ""
 }
+
+// ==============================================================================
+
+// Feeding in the set_object from the terraform-azurerm-set object will automatically assoicate the vm with the availability set (if it exists),
+// and the network interfaces with the application security group, and the load balancer backend pool.
+
+variable "set_object" {
+  description = "Output object from terraform-azurerm-set module. May include application_security_group, availability_set and azurerm_lb_backend_address_pool objects.)"
+  type        = map(any)
+  default     = {}
+}
+
+variable "application_security_group_id" {
+  description = "Resource ID for application security group."
+  type        = string
+  default     = null
+}
+
+variable "availability_set_id" {
+  description = "Resource ID for availability set."
+  type        = string
+  default     = null
+}
+
+variable "load_balancer_backend_pool_id" {
+  description = "Resource ID for the load balancer's backend pool."
+  type        = string
+  default     = null
+}
+
+// ==============================================================================
 
 variable "module_depends_on" {
   type    = any

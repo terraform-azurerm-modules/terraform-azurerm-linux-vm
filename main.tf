@@ -1,7 +1,7 @@
 locals {
   names = toset(length(var.names) > 0 ? var.names : [var.name])
 
-  module_depends_on    = coalescelist(var.module_depends_on, var.defaults.module_depends_on)
+  module_depends_on    = try(coalescelist(var.module_depends_on, var.defaults.module_depends_on), [])
   resource_group_name  = coalesce(var.resource_group_name, var.defaults.resource_group_name)
   location             = coalesce(var.location, var.defaults.location)
   tags                 = merge(var.defaults.tags, var.tags)
@@ -15,8 +15,9 @@ locals {
   vm_size              = coalesce(var.vm_size, var.defaults.vm_size)
   storage_account_type = coalesce(var.storage_account_type, var.defaults.storage_account_type)
 
-  vms_to_asgs = length(var.application_security_group_id) > 0 ? local.names : []
-
+  application_security_group_id = try(coalesce(var.application_security_group_id, var.set_object.application_security_group_id), null)
+  availability_set_id           = try(coalesce(var.availability_set_id, var.set_object.availability_set_id), null)
+  load_balancer_backend_pool_id = try(coalesce(var.load_balancer_backend_pool_id, var.set_object.load_balancer_backend_pool_id), null)
 }
 
 resource "azurerm_network_interface" "vm" {
@@ -35,10 +36,17 @@ resource "azurerm_network_interface" "vm" {
   }
 }
 
-resource "azurerm_network_interface_application_security_group_association" "asg" {
-  for_each                      = local.vms_to_asgs
+resource "azurerm_network_interface_application_security_group_association" "vm" {
+  for_each                      = local.application_security_group_id != null ? local.names : []
   network_interface_id          = azurerm_network_interface.vm[each.value].id
-  application_security_group_id = var.application_security_group_id
+  application_security_group_id = local.application_security_group_id
+}
+
+resource "azurerm_network_interface_backend_address_pool_association" "vm" {
+  for_each                = local.load_balancer_backend_pool_id != null ? local.names : []
+  network_interface_id    = azurerm_network_interface.vm[each.value].id
+  ip_configuration_name   = "ipconfiguration1"
+  backend_address_pool_id = local.load_balancer_backend_pool_id
 }
 
 resource "azurerm_linux_virtual_machine" "vm" {
@@ -52,7 +60,7 @@ resource "azurerm_linux_virtual_machine" "vm" {
   admin_username                  = local.admin_username
   disable_password_authentication = true
   size                            = local.vm_size
-  availability_set_id             = var.availability_set_id
+  availability_set_id             = local.availability_set_id
   // zone                            = 'A'
 
   network_interface_ids = [azurerm_network_interface.vm[each.key].id]
