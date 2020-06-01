@@ -33,23 +33,35 @@ variable "source_image_reference" {
 variable "defaults" {
   description = "Collection of user configurable default values."
   type = object({
-    module_depends_on    = any
     resource_group_name  = string
     location             = string
     tags                 = map(string)
-    boot_diagnostics_uri = string
-    subnet_id            = string
     vm_size              = string
     storage_account_type = string
     admin_username       = string
     admin_ssh_public_key = string
-
     additional_ssh_keys = list(object({
       username   = string
       public_key = string
     }))
+    subnet_id            = string
+    boot_diagnostics_uri = string
   })
+  default = {
+    resource_group_name  = null
+    location             = null
+    tags                 = {}
+    vm_size              = null
+    storage_account_type = null
+    admin_username       = null
+    admin_ssh_public_key = null
+    additional_ssh_keys  = null
+    subnet_id            = null
+    boot_diagnostics_uri = null
+  }
 }
+
+
 
 variable "resource_group_name" {
   description = "Name of the resource group."
@@ -148,6 +160,6 @@ variable "attachType" {
 // ==============================================================================
 
 variable "module_depends_on" {
-  type    = any
+  type    = list(any)
   default = []
 }
