@@ -1,9 +1,9 @@
 locals {
   names = coalescelist(var.names, [var.name])
 
-  resource_group_name = coalesce(var.resource_group_name, lookup(var.defaults, "resource_group_name", "unspecified"))
-  location             = try(coalesce(var.location, var.defaults.location), data.azurerm_resource_group.vm.location)
-  tags                 = merge(data.azurerm_resource_group.vm.tags, lookup(var.defaults, "tags", {}), var.tags)
+  resource_group_name  = coalesce(var.resource_group_name, lookup(var.defaults, "resource_group_name", "unspecified"))
+  location             = coalesce(var.location, var.defaults.location)
+  tags                 = merge(lookup(var.defaults, "tags", {}), var.tags)
   boot_diagnostics_uri = coalesce(var.boot_diagnostics_uri, var.defaults.boot_diagnostics_uri)
   admin_username       = coalesce(var.admin_username, var.defaults.admin_username, "ubuntu")
   admin_ssh_public_key = try(coalesce(var.admin_ssh_public_key, var.defaults.admin_ssh_public_key), file("~/.ssh/id_rsa.pub"))
@@ -42,16 +42,12 @@ locals {
   })
 }
 
-data "azurerm_resource_group" "vm" {
-  name = local.resource_group_name
-}
-
 resource "azurerm_network_interface" "vm" {
   for_each = toset(local.names)
   name     = "${each.value}-nic"
 
   depends_on          = [var.module_depends_on]
-  resource_group_name = data.azurerm_resource_group.vm.name
+  resource_group_name = local.resource_group_name
   location            = local.location
   tags                = local.tags
 
@@ -80,7 +76,7 @@ resource "azurerm_linux_virtual_machine" "vm" {
   for_each = toset(local.names)
   name     = each.value // also used for computer_name, i.e. hostname
 
-  resource_group_name = data.azurerm_resource_group.vm.name
+  resource_group_name = local.resource_group_name
   location            = local.location
   tags                = local.tags
 
