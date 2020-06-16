@@ -12,33 +12,44 @@ locals {
   vm_size              = coalesce(var.vm_size, var.defaults.vm_size, "Standard_B1ls")
   storage_account_type = coalesce(var.storage_account_type, var.defaults.storage_account_type, "Standard_LRS")
 
-  application_security_group_id = lookup(var.attach, "application_security_group_id", null)
-  availability_set_id           = lookup(var.attach, "availability_set_id", null)
-  load_balancer_backend_pool_id = lookup(var.attach, "load_balancer_backend_pool_id", null)
+  application_security_group_id       = lookup(var.attach, "application_security_group_id", null)
+  availability_set_id                 = lookup(var.attach, "availability_set_id", null)
+  load_balancer_backend_pool_id       = lookup(var.attach, "load_balancer_backend_pool_id", null)
+  application_gateway_backend_pool_id = lookup(var.attach, "application_gateway_backend_pool_id", null)
 
   attachTypeMap = {
-    "ApplicationSecurityGroupOnly" = {
-      "application_security_group" = true
-      "availability_set"           = false
-      "load_balancer_backend_pool" = false
+    "ApplicationSecurityGroup" = {
+      "application_security_group"       = true
+      "availability_set"                 = false
+      "load_balancer_backend_pool"       = false
+      "application_gateway_backend_pool" = false
     },
-    "NoLoadBalancer" = {
-      "application_security_group" = true
-      "availability_set"           = true
-      "load_balancer_backend_pool" = false
+    "AvailabilitySet" = {
+      "application_security_group"       = true
+      "availability_set"                 = true
+      "load_balancer_backend_pool"       = false
+      "application_gateway_backend_pool" = false
     },
-    "All" = {
-      "application_security_group" = true
-      "availability_set"           = true
-      "load_balancer_backend_pool" = true
+    "LoadBalancer" = {
+      "application_security_group"       = true
+      "availability_set"                 = true
+      "load_balancer_backend_pool"       = true
+      "application_gateway_backend_pool" = false
+    },
+    "ApplicationGateway" = {
+      "application_security_group"       = true
+      "availability_set"                 = true
+      "load_balancer_backend_pool"       = false
+      "application_gateway_backend_pool" = true
     }
   }
 
   // The attachType variable is only used when inputting the set module's output. If not then derive.
   attach = lookup(local.attachTypeMap, var.attachType, {
-    "application_security_group" = var.attach.application_security_group_id != null ? true : false
-    "availability_set"           = var.attach.availability_set_id != null ? true : false
-    "load_balancer_backend_pool" = var.attach.load_balancer_backend_pool_id != null ? true : false
+    "application_security_group"       = var.attach.application_security_group_id != null ? true : false
+    "availability_set"                 = var.attach.availability_set_id != null ? true : false
+    "load_balancer_backend_pool"       = var.attach.load_balancer_backend_pool_id != null ? true : false
+    "application_gateway_backend_pool" = var.attach.application_gateway_backend_pool_id != null ? true : false
   })
 }
 
@@ -70,6 +81,13 @@ resource "azurerm_network_interface_backend_address_pool_association" "vm" {
   network_interface_id    = azurerm_network_interface.vm[each.value].id
   ip_configuration_name   = "ipconfiguration1"
   backend_address_pool_id = local.load_balancer_backend_pool_id
+}
+
+resource "azurerm_network_interface_application_gateway_backend_address_pool_association" "example" {
+  for_each                = toset(local.attach.application_gateway_backend_pool ? local.names : [])
+  network_interface_id    = azurerm_network_interface.vm[each.value].id
+  ip_configuration_name   = "ipconfiguration1"
+  backend_address_pool_id = local.application_gateway_backend_pool_id
 }
 
 resource "azurerm_linux_virtual_machine" "vm" {

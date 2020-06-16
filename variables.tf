@@ -138,16 +138,18 @@ variable "boot_diagnostics_uri" {
 // and the network interfaces with the application security group, and the load balancer backend pool.
 
 variable "attach" {
-  description = "Object containing IDs to attach. May include application_security_group, availability_set and azurerm_lb_backend_address_pool objects.)"
+  description = "Object containing IDs to attach."
   type = object({
-    application_security_group_id = string
-    availability_set_id           = string
-    load_balancer_backend_pool_id = string
+    application_security_group_id       = string
+    availability_set_id                 = string
+    load_balancer_backend_pool_id       = string
+    application_gateway_backend_pool_id = string
   })
   default = {
-    application_security_group_id = null
-    availability_set_id           = null
-    load_balancer_backend_pool_id = null
+    application_security_group_id       = null
+    availability_set_id                 = null
+    load_balancer_backend_pool_id       = null
+    application_gateway_backend_pool_id = null
   }
 }
 
