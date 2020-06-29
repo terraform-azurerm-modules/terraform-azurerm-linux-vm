@@ -142,28 +142,32 @@ variable "boot_diagnostics_uri" {
 
 // ==============================================================================
 
-variable "application_security_group_id" {
-  description = "Resource ID for an application security group."
-  type        = string
-  default     = null
-}
-
 variable "availability_set_id" {
-  description = "Resource ID for an availability set."
+  description = "Availability set resource ID"
   type        = string
   default     = null
 }
 
-variable "load_balancer_backend_address_pool_id" {
-  description = "Resource ID for a load balancer's backend pool."
-  type        = string
-  default     = null
+// ==============================================================================
+// These are maps as we need the key to create the Terraform ident
+// The ids are not known at plan time
+
+variable "application_security_group_ids" {
+  description = "Application security group: name => id"
+  type        = map(string)
+  default     = {}
 }
 
-variable "application_gateway_backend_address_pool_id" {
-  description = "Resource ID for an application gateway's backend pool."
-  type        = string
-  default     = null
+variable "load_balancer_backend_address_pool_ids" {
+  description = "Load balancer's backend pools: name => id"
+  type        = map(string)
+  default     = {}
+}
+
+variable "application_gateway_backend_address_pool_ids" {
+  description = "Application gateway backend pools: name => id"
+  type        = map(string)
+  default     = {}
 }
 
 // ==============================================================================
