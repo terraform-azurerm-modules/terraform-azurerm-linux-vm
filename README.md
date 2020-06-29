@@ -77,10 +77,10 @@ module "example" {
   source   = "github.com/terraform-azurerm-modules/terraform-azurerm-linux-vm"
   defaults = local.vm_defaults
 
-  availability_set_id                   = module.example_lb.availability_set_id
-  load_balancer_backend_address_pool_id = module.example_lb.load_balancer_backend_address_pool_id
-  names                                 = ["example-01", "example-02"]
-  source_image_id                       = data.azurerm_image.ubuntu_18_04.id
+  availability_set_id                    = module.example_lb.availability_set_id
+  load_balancer_backend_address_pool_ids = { "example" = module.example_lb.load_balancer_backend_address_pool_id }
+  names                                  = ["example-01", "example-02"]
+  source_image_id                        = data.azurerm_image.ubuntu_18_04.id
 }
 
 output "example_load_balancer_ip_address" {
