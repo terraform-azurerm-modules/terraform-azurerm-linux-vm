@@ -10,6 +10,8 @@ This Terraform module creates one or more VMs. Uses a defaults object to reduce 
 
 > CLEAN UP THE EXAMPLE TO BE A FULL STANDALONE
 
+MAKE THE ASSOCIATION IDS A LIST AND LOOP - TEST IT OUT?
+
 ```terraform
 locals {
   vm_defaults = {

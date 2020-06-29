@@ -10,47 +10,8 @@ locals {
   additional_ssh_keys  = try(coalesce(var.additional_ssh_keys, var.defaults.additional_ssh_keys), [])
   subnet_id            = coalesce(var.subnet_id, var.defaults.subnet_id)
   vm_size              = coalesce(var.vm_size, var.defaults.vm_size, "Standard_B1ls")
+  identity_id          = try(coalesce(var.identity_id, var.defaults.identity_id), null)
   storage_account_type = coalesce(var.storage_account_type, var.defaults.storage_account_type, "Standard_LRS")
-
-  application_security_group_id       = lookup(var.attach, "application_security_group_id", null)
-  availability_set_id                 = lookup(var.attach, "availability_set_id", null)
-  load_balancer_backend_pool_id       = lookup(var.attach, "load_balancer_backend_pool_id", null)
-  application_gateway_backend_pool_id = lookup(var.attach, "application_gateway_backend_pool_id", null)
-
-  attachTypeMap = {
-    "ApplicationSecurityGroup" = {
-      "application_security_group"       = true
-      "availability_set"                 = false
-      "load_balancer_backend_pool"       = false
-      "application_gateway_backend_pool" = false
-    },
-    "AvailabilitySet" = {
-      "application_security_group"       = true
-      "availability_set"                 = true
-      "load_balancer_backend_pool"       = false
-      "application_gateway_backend_pool" = false
-    },
-    "LoadBalancer" = {
-      "application_security_group"       = true
-      "availability_set"                 = true
-      "load_balancer_backend_pool"       = true
-      "application_gateway_backend_pool" = false
-    },
-    "ApplicationGateway" = {
-      "application_security_group"       = true
-      "availability_set"                 = true
-      "load_balancer_backend_pool"       = false
-      "application_gateway_backend_pool" = true
-    }
-  }
-
-  // The attachType variable is only used when inputting the set module's output. If not then derive.
-  attach = lookup(local.attachTypeMap, var.attachType, {
-    "application_security_group"       = var.attach.application_security_group_id != null ? true : false
-    "availability_set"                 = var.attach.availability_set_id != null ? true : false
-    "load_balancer_backend_pool"       = var.attach.load_balancer_backend_pool_id != null ? true : false
-    "application_gateway_backend_pool" = var.attach.application_gateway_backend_pool_id != null ? true : false
-  })
 }
 
 resource "azurerm_network_interface" "vm" {
@@ -71,23 +32,23 @@ resource "azurerm_network_interface" "vm" {
 
 
 resource "azurerm_network_interface_application_security_group_association" "vm" {
-  for_each                      = toset(local.attach.application_security_group ? local.names : [])
+  for_each                      = toset(var.application_security_group_id != null ? local.names : [])
   network_interface_id          = azurerm_network_interface.vm[each.value].id
-  application_security_group_id = local.application_security_group_id
+  application_security_group_id = var.application_security_group_id
 }
 
 resource "azurerm_network_interface_backend_address_pool_association" "vm" {
-  for_each                = toset(local.attach.load_balancer_backend_pool ? local.names : [])
+  for_each                = toset(var.load_balancer_backend_address_pool_id != null ? local.names : [])
   network_interface_id    = azurerm_network_interface.vm[each.value].id
   ip_configuration_name   = "ipconfiguration1"
-  backend_address_pool_id = local.load_balancer_backend_pool_id
+  backend_address_pool_id = var.load_balancer_backend_address_pool_id
 }
 
 resource "azurerm_network_interface_application_gateway_backend_address_pool_association" "example" {
-  for_each                = toset(local.attach.application_gateway_backend_pool ? local.names : [])
+  for_each                = toset(var.application_gateway_backend_address_pool_id != null ? local.names : [])
   network_interface_id    = azurerm_network_interface.vm[each.value].id
   ip_configuration_name   = "ipconfiguration1"
-  backend_address_pool_id = local.application_gateway_backend_pool_id
+  backend_address_pool_id = var.application_gateway_backend_address_pool_id
 }
 
 resource "azurerm_linux_virtual_machine" "vm" {
@@ -101,7 +62,7 @@ resource "azurerm_linux_virtual_machine" "vm" {
   admin_username                  = local.admin_username
   disable_password_authentication = true
   size                            = local.vm_size
-  availability_set_id             = local.availability_set_id
+  availability_set_id             = var.availability_set_id
   // zone                            = 'A'
 
   network_interface_ids = [azurerm_network_interface.vm[each.key].id]
@@ -138,8 +99,21 @@ resource "azurerm_linux_virtual_machine" "vm" {
     }
   }
 
-  identity {
-    type = "SystemAssigned"
+  dynamic "identity" {
+    for_each = toset(local.identity_id != null ? [1] : [])
+
+    content {
+      type         = "UserAssigned"
+      identity_ids = [local.identity_id]
+    }
+  }
+
+  dynamic "identity" {
+    for_each = toset(local.identity_id == null ? [1] : [])
+
+    content {
+      type         = "SystemAssigned"
+    }
   }
 
   boot_diagnostics {

@@ -17,6 +17,7 @@ variable "source_image_id" {
 }
 
 variable "source_image_reference" {
+  // Not currently used - custom images only
   description = "Standard image reference block for platform images. Do not use if specifying a custom source_image_id."
   type = object({
     publisher = string
@@ -126,6 +127,13 @@ variable "additional_ssh_keys" {
   default = []
 }
 
+
+variable "identity_id" {
+  description = "Resource ID for a user assigned managed identity."
+  type        = string
+  default     = null
+}
+
 variable "boot_diagnostics_uri" {
   description = "Blob URI for the boot diagnostics storage account."
   type        = string
@@ -134,29 +142,28 @@ variable "boot_diagnostics_uri" {
 
 // ==============================================================================
 
-// Feeding in the set_object from the terraform-azurerm-set object will automatically assoicate the vm with the availability set (if it exists),
-// and the network interfaces with the application security group, and the load balancer backend pool.
-
-variable "attach" {
-  description = "Object containing IDs to attach."
-  type = object({
-    application_security_group_id       = string
-    availability_set_id                 = string
-    load_balancer_backend_pool_id       = string
-    application_gateway_backend_pool_id = string
-  })
-  default = {
-    application_security_group_id       = null
-    availability_set_id                 = null
-    load_balancer_backend_pool_id       = null
-    application_gateway_backend_pool_id = null
-  }
+variable "application_security_group_id" {
+  description = "Resource ID for an application security group."
+  type        = string
+  default     = null
 }
 
-variable "attachType" {
-  description = "Control which resources are attached to."
+variable "availability_set_id" {
+  description = "Resource ID for an availability set."
   type        = string
-  default     = ""
+  default     = null
+}
+
+variable "load_balancer_backend_address_pool_id" {
+  description = "Resource ID for a load balancer's backend pool."
+  type        = string
+  default     = null
+}
+
+variable "application_gateway_backend_address_pool_id" {
+  description = "Resource ID for an application gateway's backend pool."
+  type        = string
+  default     = null
 }
 
 // ==============================================================================
