@@ -142,8 +142,14 @@ variable "boot_diagnostics_uri" {
 
 // ==============================================================================
 
+variable "availability_set_name" {
+  description = "Create an availability set with the specified name. Do not use both availability_set_name and availability_set_id."
+  type        = string
+  default     = ""
+}
+
 variable "availability_set_id" {
-  description = "Availability set resource ID"
+  description = "Availability set resource ID - attaches NIC. Do not use both availability_set_name and availability_set_id."
   type        = string
   default     = null
 }

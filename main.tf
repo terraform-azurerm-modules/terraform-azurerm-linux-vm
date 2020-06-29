@@ -13,9 +13,6 @@ locals {
   identity_id          = try(coalesce(var.identity_id, var.defaults.identity_id), null)
   storage_account_type = coalesce(var.storage_account_type, var.defaults.storage_account_type, "Standard_LRS")
 
-  // application_security_group = var.application_security_group_id != "" || var.load_balancer_object.application_security_group_id != "" ? true : false
-  // application_security_group_id = try(coalesce(var.application_security_group_id, var.load_balancer_object.application_security_group_id), "")
-
   application_security_group_ids = { for p in setproduct(local.names, keys(var.application_security_group_ids)) :
     format("%s-%s", p[0], p[1]) => {
       vm_name                       = p[0]
@@ -36,6 +33,15 @@ locals {
       backend_address_pool_id = var.application_gateway_backend_address_pool_ids[p[1]]
     }
   }
+}
+
+resource "azurerm_availability_set" "vm" {
+  depends_on          = [var.module_depends_on]
+  for_each            = toset(length(var.availability_set_name) > 0 ? [var.availability_set_name] : [])
+  name                = each.value
+  resource_group_name = local.resource_group_name
+  location            = local.location
+  tags                = local.tags
 }
 
 resource "azurerm_network_interface" "vm" {
@@ -85,7 +91,7 @@ resource "azurerm_linux_virtual_machine" "vm" {
   admin_username                  = local.admin_username
   disable_password_authentication = true
   size                            = local.vm_size
-  availability_set_id             = var.availability_set_id
+  availability_set_id             = length(var.availability_set_name) > 0 ? azurerm_availability_set.vm[var.availability_set_name].id : var.availability_set_id
   // zone                            = 'A'
 
   network_interface_ids = [azurerm_network_interface.vm[each.key].id]
