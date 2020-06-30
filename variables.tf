@@ -143,13 +143,13 @@ variable "boot_diagnostics_uri" {
 // ==============================================================================
 
 variable "availability_set_name" {
-  description = "Create an availability set with the specified name. Do not use both availability_set_name and availability_set_id."
+  description = "Create an availability set with the specified name. Use either availability_set_name or availability_set_id."
   type        = string
   default     = ""
 }
 
 variable "availability_set_id" {
-  description = "Availability set resource ID - attaches NIC. Do not use both availability_set_name and availability_set_id."
+  description = "Resource ID for existing availability set. Use either availability_set_name or availability_set_id."
   type        = string
   default     = null
 }
@@ -158,22 +158,31 @@ variable "availability_set_id" {
 // These are maps as we need the key to create the Terraform ident
 // The ids are not known at plan time
 
-variable "application_security_group_ids" {
-  description = "Application security group: name => id"
-  type        = map(string)
-  default     = {}
+variable "application_security_groups" {
+  description = "List of application security group objects, name and id."
+  type = list(object({
+    name = string
+    id   = string
+  }))
+  default = []
 }
 
-variable "load_balancer_backend_address_pool_ids" {
-  description = "Load balancer's backend pools: name => id"
-  type        = map(string)
-  default     = {}
+variable "load_balancer_backend_address_pools" {
+  description = "List of load balancer's backend pools objects, name and id."
+  type = list(object({
+    name = string
+    id   = string
+  }))
+  default = []
 }
 
-variable "application_gateway_backend_address_pool_ids" {
-  description = "Application gateway backend pools: name => id"
-  type        = map(string)
-  default     = {}
+variable "application_gateway_backend_address_pools" {
+  description = "List of application gateway backend pools objects, name and id."
+  type = list(object({
+    name = string
+    id   = string
+  }))
+  default = []
 }
 
 // ==============================================================================

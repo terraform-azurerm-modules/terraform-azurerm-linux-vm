@@ -13,24 +13,45 @@ locals {
   identity_id          = try(coalesce(var.identity_id, var.defaults.identity_id), null)
   storage_account_type = coalesce(var.storage_account_type, var.defaults.storage_account_type, "Standard_LRS")
 
-  application_security_group_ids = { for p in setproduct(local.names, keys(var.application_security_group_ids)) :
-    format("%s-%s", p[0], p[1]) => {
-      vm_name                       = p[0]
-      application_security_group_id = var.application_security_group_ids[p[1]]
+  application_security_groups = {
+    for object in var.application_security_groups :
+    object.name => object
+  }
+
+  load_balancer_backend_address_pools = {
+    for object in var.load_balancer_backend_address_pools :
+    object.name => object
+  }
+
+  application_gateway_backend_address_pools = {
+    for object in var.application_gateway_backend_address_pools :
+    object.name => object
+  }
+
+  vms_to_application_security_groups = {
+    for prod in setproduct(local.names, keys(local.application_security_groups)) :
+    format("%s-%s", prod[0], prod[1]) => {
+      vm_name                         = prod[0]
+      application_security_group_name = local.application_security_groups[prod[1]].name
+      application_security_group_id   = local.application_security_groups[prod[1]].id
     }
   }
 
-  load_balancer_backend_address_pool_ids = { for p in setproduct(local.names, keys(var.load_balancer_backend_address_pool_ids)) :
-    format("%s-%s", p[0], p[1]) => {
-      vm_name                 = p[0]
-      backend_address_pool_id = var.load_balancer_backend_address_pool_ids[p[1]]
+  vms_to_load_balancer_backend_address_pools = {
+    for prod in setproduct(local.names, keys(local.load_balancer_backend_address_pools)) :
+    format("%s-%s", prod[0], prod[1]) => {
+      vm_name                   = prod[0]
+      backend_address_pool_name = local.load_balancer_backend_address_pools[prod[1]].name
+      backend_address_pool_id   = local.load_balancer_backend_address_pools[prod[1]].id
     }
   }
 
-  application_gateway_backend_address_pool_ids = { for p in setproduct(local.names, keys(var.application_gateway_backend_address_pool_ids)) :
-    format("%s-%s", p[0], p[1]) => {
-      vm_name                 = p[0]
-      backend_address_pool_id = var.application_gateway_backend_address_pool_ids[p[1]]
+  vms_to_application_gateway_backend_address_pools = {
+    for prod in setproduct(local.names, keys(local.application_gateway_backend_address_pools)) :
+    format("%s-%s", prod[0], prod[1]) => {
+      vm_name                   = prod[0]
+      backend_address_pool_name = local.application_gateway_backend_address_pools[prod[1]].name
+      backend_address_pool_id   = local.application_gateway_backend_address_pools[prod[1]].id
     }
   }
 }
@@ -61,20 +82,20 @@ resource "azurerm_network_interface" "vm" {
 }
 
 resource "azurerm_network_interface_application_security_group_association" "vm" {
-  for_each                      = local.application_security_group_ids
+  for_each                      = local.vms_to_application_security_groups
   network_interface_id          = azurerm_network_interface.vm[each.value.vm_name].id
   application_security_group_id = each.value.application_security_group_id
 }
 
 resource "azurerm_network_interface_backend_address_pool_association" "vm" {
-  for_each                = local.load_balancer_backend_address_pool_ids
+  for_each                = local.vms_to_load_balancer_backend_address_pools
   network_interface_id    = azurerm_network_interface.vm[each.value.vm_name].id
   ip_configuration_name   = "ipconfiguration1"
   backend_address_pool_id = each.value.backend_address_pool_id
 }
 
 resource "azurerm_network_interface_application_gateway_backend_address_pool_association" "example" {
-  for_each                = local.application_gateway_backend_address_pool_ids
+  for_each                = local.vms_to_application_gateway_backend_address_pools
   network_interface_id    = azurerm_network_interface.vm[each.value.vm_name].id
   ip_configuration_name   = "ipconfiguration1"
   backend_address_pool_id = each.value.backend_address_pool_id
